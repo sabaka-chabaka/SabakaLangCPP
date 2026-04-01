@@ -13,7 +13,7 @@ class parser {
     int position = 0;
 
 public:
-    parser(std::vector<token> tokens);
+    parser(const std::vector<token> &tokens);
 
     token current();
     token consume();
