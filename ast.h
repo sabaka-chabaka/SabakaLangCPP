@@ -4,6 +4,8 @@
 
 #include "token.h"
 
+typedef std::string string;
+
 enum AccessModifier {
     PublicAc,
     PrivateAc,
@@ -55,10 +57,10 @@ public:
 
 class assignmentExpr : public expr {
 public:
-    std::string* name;
+    string* name;
     expr* value;
 
-    assignmentExpr(std::string* name, expr* value) : expr() {
+    assignmentExpr(string* name, expr* value) : expr() {
         this->name = name;
         this->value = value;
     }
@@ -88,10 +90,10 @@ public:
 
 class callExpr : public expr {
     expr* target;
-    std::string name;
+    string name;
     std::vector<expr*>* args;
 
-    callExpr(expr* target, std::string name, std::vector<expr*>* args) : expr() {
+    callExpr(expr* target, string name, std::vector<expr*>* args) : expr() {
         this->target = target;
         this->name = std::move(name);
         this->args = args;
@@ -103,16 +105,16 @@ class functionDeclaration;
 
 class classDeclaration : public expr {
 public:
-    std::string name;
-    std::vector<std::string>* typeParams;
-    std::string baseClassName;
-    std::vector<std::string>* interfaces;
+    string name;
+    std::vector<string>* typeParams;
+    string baseClassName;
+    std::vector<string>* interfaces;
     std::vector<variableDeclaration*>* fields;
     std::vector<functionDeclaration*>* methods;
 
     bool isGeneric() const { return typeParams->size() > 0; }
 
-    classDeclaration(std::string name, std::vector<std::string>* typeParams, std::string baseClassName, std::vector<std::string>* interfaces, std::vector<variableDeclaration*>* fields, std::vector<functionDeclaration*>* methods) : expr() {
+    classDeclaration(string name, std::vector<string>* typeParams, string baseClassName, std::vector<string>* interfaces, std::vector<variableDeclaration*>* fields, std::vector<functionDeclaration*>* methods) : expr() {
         this->name = std::move(name);
         this->typeParams = typeParams;
         this->baseClassName = std::move(baseClassName);
@@ -124,10 +126,10 @@ public:
 
 class enumDeclaration : public expr {
 public:
-    std::string name;
-    std::vector<std::string>* members;
+    string name;
+    std::vector<string>* members;
 
-    enumDeclaration(std::string name, std::vector<std::string>* members) : expr() {
+    enumDeclaration(string name, std::vector<string>* members) : expr() {
         this->name = std::move(name);
         this->members = members;
     }
@@ -143,6 +145,7 @@ public:
 };
 
 class forStatement : public expr {
+public:
     expr* initializer;
     expr* condition;
     expr* increment;
@@ -157,6 +160,7 @@ class forStatement : public expr {
 };
 
 class foreachStatement : public expr {
+public:
     expr* varName;
     expr* collection;
     std::vector<expr*>* body;
@@ -168,3 +172,154 @@ class foreachStatement : public expr {
     }
 };
 
+class parameter;
+
+class functionDeclaration : public expr {
+public:
+    tokenType returnType;
+    string name;
+    std::vector<string>* typeParams;
+    std::vector<parameter*>* params;
+    std::vector<expr*>* body;
+    AccessModifier accessModifier;
+
+    bool isGeneric() const { return typeParams->size() > 0; }
+
+    functionDeclaration(tokenType returnType, string name, std::vector<string>* typeParams, std::vector<parameter*>* params, std::vector<expr*>* body, AccessModifier accessModifier) : expr() {
+        this->returnType = returnType;
+        this->name = std::move(name);
+        this->typeParams = typeParams;
+        this->params = params;
+        this->body = body;
+        this->accessModifier = accessModifier;
+    }
+};
+
+class ifStatement : public expr {
+public:
+    expr* condition;
+    std::vector<expr*>* thenBlock;
+    std::vector<expr*>* elseBlock;
+
+    ifStatement(expr* condition, std::vector<expr*>* thenBlock, std::vector<expr*>* elseBlock) : expr() {
+        this->condition = condition;
+        this->thenBlock = thenBlock;
+        this->elseBlock = elseBlock;
+    }
+};
+
+class importStatement : public expr {
+public:
+    string filePath;
+
+    importStatement(string filePath) : expr() {
+        this->filePath = std::move(filePath);
+    }
+};
+
+class intExpr : public expr {
+public:
+    int value;
+
+    intExpr(int value) : expr() {
+        this->value = value;
+    }
+};
+
+class interfaceDeclaration : public expr {
+public:
+    string name;
+    std::vector<string>* typeParams;
+    std::vector<string>* parents;
+    std::vector<functionDeclaration*>* methods;
+
+    bool isGeneric() const { return typeParams->size() > 0; }
+
+    interfaceDeclaration(string name, std::vector<string>* typeParams, std::vector<string>* parents, std::vector<functionDeclaration*>* methods) : expr() {
+        this->name = std::move(name);
+        this->typeParams = typeParams;
+        this->parents = parents;
+        this->methods = methods;
+    }
+};
+
+class memberAccessExpr : public expr {
+public:
+    expr* object;
+    string member;
+
+    memberAccessExpr(expr* object, string member) : expr() {
+        this->object = object;
+        this->member = std::move(member);
+    }
+};
+
+class memberAssignmentExpr : public expr {
+public:
+    expr* object;
+    string member;
+    expr* value;
+
+    memberAssignmentExpr(expr* object, string member, expr* value) : expr() {
+        this->object = object;
+        this->member = std::move(member);
+        this->value = value;
+    }
+};
+
+class newExpr : public expr {
+public:
+    string className;
+    std::vector<string> typeArgs;
+    std::vector<expr*>* arguments;
+
+    std::string getMangledName() const {
+        if (typeArgs.empty()) {
+            return className;
+        }
+
+        std::string result = className;
+        for (const auto& arg : typeArgs) {
+            result += "$" + arg;
+        }
+        return result;
+    }
+
+    newExpr(string className, std::vector<string> typeArgs, std::vector<expr*>* arguments) : expr() {
+        this->className = std::move(className);
+        this->typeArgs = std::move(typeArgs);
+        this->arguments = arguments;
+    }
+};
+
+
+class parameter{
+public:
+    tokenType type;
+    string customType;
+    string name;
+
+    parameter(tokenType type, string customType, string name) {
+        this->type = type;
+        this->customType = customType;
+        this->name = name;
+    }
+};
+
+class returnStatement : public expr {
+public:
+    expr* value;
+
+    returnStatement(expr* value) : expr() {
+        this->value = value;
+    }
+};
+
+class stringExpr : public expr {
+public:
+    string value;
+
+    stringExpr(string value) : expr() {
+        this->value = std::move(value);
+    }
+};
