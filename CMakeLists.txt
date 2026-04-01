@@ -8,4 +8,5 @@ add_executable(SabakaLangCPP
         token.cpp
         lexer.cpp
         ast.h
+        parser.cpp
 )
