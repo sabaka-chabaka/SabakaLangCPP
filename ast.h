@@ -325,6 +325,7 @@ public:
 };
 
 class structDeclaration : public expr {
+public:
     string name;
     std::vector<string>* fields;
 
@@ -338,4 +339,72 @@ class superExpr : public expr { };
 
 class thisExpr : public expr { };
 
-class switchStatment
+class switchCase {
+public:
+    expr* value;
+    std::vector<expr*>* body;
+
+    switchCase(expr* value, std::vector<expr*>* body) {
+        this->value = value;
+        this->body = body;
+    }
+};
+
+class switchStatement : public expr {
+public:
+    expr* expression;
+    std::vector<switchCase*>* cases;
+
+    switchStatement(expr* expression, std::vector<switchCase*>* cases) {
+        this->expression = expression;
+        this->cases = cases;
+    }
+};
+
+class unaryExpr : public expr {
+public:
+    tokenType op;
+    expr* operand;
+
+    unaryExpr(tokenType op, expr* operand) : expr() {
+        this->op = op;
+        this->operand = operand;
+    }
+};
+
+class variableDeclaration : public expr {
+public:
+    tokenType type;
+    string customType;
+    string name;
+    expr* initializer;
+    AccessModifier accessModifier;
+
+    variableDeclaration(tokenType type, string customType, string name, expr* initializer, AccessModifier accessModifier) : expr() {
+        this->type = type;
+        this->customType = std::move(customType);
+        this->name = std::move(name);
+        this->initializer = initializer;
+        this->accessModifier = accessModifier;
+    }
+};
+
+class variableExpr : public expr {
+public:
+    string name;
+
+    variableExpr(string name) : expr() {
+        this->name = std::move(name);
+    }
+};
+
+class whileExpr : public expr {
+public:
+    expr* condition;
+    std::vector<expr*>* body;
+
+    whileExpr(expr* condition, std::vector<expr*>* body) : expr() {
+        this->condition = condition;
+        this->body = body;
+    }
+};
