@@ -7,4 +7,5 @@ add_executable(SabakaLangCPP
         main.cpp
         token.cpp
         lexer.cpp
+        ast.h
 )
