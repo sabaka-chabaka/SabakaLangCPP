@@ -22,12 +22,9 @@ token lexer::readNumber() {
         advance();
     }
 
-    std::string text = text.substr(start, position - start);
+    const std::string value = text.substr(start, position - start);
 
-    if (hasDot)
-        return token(FloatLiteral, text, start, position);
-    else
-        return token(IntLiteral, text, start, position);
+    return token(hasDot ? FloatLiteral : IntLiteral, value, start, position);
 }
 
 token lexer::readIdentifier() {
@@ -128,6 +125,7 @@ token lexer::readString() {
 
 lexer::lexer(const std::string &text) {
     this->text = text;
+    this->position = 0;
 }
 
 std::vector<token> lexer::tokenize() {
