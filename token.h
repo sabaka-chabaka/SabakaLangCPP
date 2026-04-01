@@ -79,6 +79,7 @@ enum tokenType {
     Protected,
 
     Import,
+    This,
 
     EndOfFile
 };

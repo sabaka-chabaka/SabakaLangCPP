@@ -64,7 +64,8 @@ token lexer::readIdentifier() {
         {"public", Public},
         {"private", Private},
         {"protected", Protected},
-        {"import", Import}
+        {"import", Import},
+        {"this", This}
     };
 
     auto it = keywords.find(sb);

@@ -86,6 +86,7 @@ std::string tokenType_toString(const tokenType type) {
         case Protected: return "Protected";
 
         case Import: return "Import";
+        case This: return "This";
 
         case EndOfFile: return "EndOfFile";
     }

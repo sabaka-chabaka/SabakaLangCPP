@@ -323,3 +323,19 @@ public:
         this->value = std::move(value);
     }
 };
+
+class structDeclaration : public expr {
+    string name;
+    std::vector<string>* fields;
+
+    structDeclaration(string name, std::vector<string>* fields) : expr() {
+        this->name = std::move(name);
+        this->fields = fields;
+    }
+};
+
+class superExpr : public expr { };
+
+class thisExpr : public expr { };
+
+class switchStatment
