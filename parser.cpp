@@ -431,3 +431,279 @@ expr* parser::parseSwitch() {
     expect(RBrace);
     return withPos(new switchStatement(expression, cases), startToken, tokens[position - 1]);
 }
+
+std::vector<expr*> parser::parseBlock() {
+    expect(LBrace);
+
+    std::vector<expr*> statements;
+
+    while (current().type != RBrace && current().type != EndOfFile) {
+        statements.push_back(parseStatement());
+    }
+
+    expect(RBrace);
+    return statements;
+}
+
+expr* parser::parseAssignment() {
+    token startToken = current();
+    if (current().type == Super) {
+        if (peek().type == ColonColon && peek(2).type == Identifier && peek(3).type == Equal) {
+            token sToken = consume();
+            consume();
+            string member = consume().value;
+            consume();
+            expr* value = parseAssignment();
+            return withPos(new memberAssignmentExpr(withPos(new superExpr(), sToken), member, value), startToken, tokens[position - 1]);
+        }
+    }
+
+    if (current().type == Identifier) {
+        if (peek().type == Equal) {
+            string name = consume().value;
+            consume();
+            expr* value = parseAssignment();
+            return withPos(new assignmentExpr(&name, value), startToken, tokens[position - 1]);
+        }
+
+        if (peek().type == LBracket) {
+            int offset = 2;
+            int depth = 1;
+            while (position + offset < tokens.size() && depth > 0) {
+                if (tokens[position + offset].type == LBracket) depth++;
+                else if (tokens[position + offset].type == RBracket) depth--;
+                offset++;
+            }
+
+            if (position + offset < tokens.size() && tokens[position + offset].type == Equal) {
+                token identifier = consume();
+                consume();
+                expr* index = parseAssignment();
+                expect(RBracket);
+                expect(Equal);
+                expr* value = parseAssignment();
+                return withPos(new arrayStoreExpr(withPos(new variableExpr(identifier.value), identifier), index, value), startToken, tokens[position - 1]);
+            }
+        }
+
+        if (peek().type == Dot) {
+            int offset = 1;
+            while (peek(offset).type == Dot && peek(offset + 1).type == Identifier) offset += 2;
+
+            if (peek(offset).type == LBracket) {
+                int savedOffset = offset;
+                offset++;
+                int depth = 1;
+                while (position + offset < tokens.size() && depth > 0) {
+                    if (tokens[position + offset].type == LBracket) depth++;
+                    else if (tokens[position + offset].type == RBracket) depth--;
+                    offset++;
+                }
+                if (position + offset < tokens.size() && tokens[position + offset].type == Equal) {
+                    token firstToken = current();
+                    expr* obj = withPos(new variableExpr(consume().value), firstToken);
+                    while (current().type == Dot) {
+                        consume();
+                        token memberToken = expect(Identifier);
+                        obj = withPos(new memberAccessExpr(obj, memberToken.value), firstToken, tokens[position - 1]);
+                    }
+                    expect(LBracket);
+                    expr* index = parseAssignment();
+                    expect(RBracket);
+                    expect(Equal);
+                    expr* value = parseAssignment();
+                    return withPos(new arrayStoreExpr(obj, index, value), startToken, tokens[position - 1]);
+                }
+            }
+
+            if (peek(offset).type == Equal) {
+                token startToken = current();
+                expr* obj = withPos(new variableExpr(consume().value), startToken);
+
+                while (current().type == Dot && peek(2).type == Identifier && peek(3).type != Equal) {
+                    consume();
+                    token memberToken = expect(Identifier);
+                    obj = withPos(new memberAccessExpr(obj, memberToken.value), startToken, tokens[position - 1]);
+                }
+
+                consume();
+                token memberToken = expect(Identifier);
+                expect(Equal);
+                expr* value = parseAssignment();
+                return withPos(new memberAssignmentExpr(obj, memberToken.value, value), startToken, tokens[position - 1]);
+            }
+        }
+    }
+
+    return parseLogicalOr();
+}
+
+expr* parser::parseComparsion() {
+    expr* left = parseAdditive();
+    while (current().type == EqualEqual || current().type == NotEqual || current().type == Greater || current().type == Less || current().type == GreaterEqual || current().type == LessEqual) {
+        token opToken = consume();
+        expr* right = parseAdditive();
+        left = withPos(new binaryExpr(left, opToken.type, right), left->start, right->end);
+    }
+
+    return left;
+}
+
+expr* parser::parseAdditive() {
+    expr* exp = parseMultiplicative();
+    while (current().type == Plus || current().type == Minus) {
+        token opToken = consume();
+        expr* right = parseMultiplicative();
+        exp = withPos(new binaryExpr(exp, opToken.type, right), exp->start, right->end);
+    }
+
+    return exp;
+}
+
+expr* parser::parseMultiplicative() {
+    expr* exp = parseUnary();
+    while (current().type == Star || current().type == Slash || current().type == Percent) {
+        token opToken = consume();
+        expr* right = parseUnary();
+
+        exp = withPos(new binaryExpr(exp, opToken.type, right), exp->start, right->end);
+    }
+
+    return exp;
+}
+
+expr* parser::parseUnary() {
+    token startToken = current();
+    if (current().type == Minus) {
+        tokenType op = consume().type;
+        expr* exp = parseUnary();
+        return withPos(new unaryExpr(op, exp), startToken, tokens[position - 1]);
+    }
+
+    if (current().type == Bang) {
+        tokenType op = consume().type;
+        expr* exp = parseUnary();
+        return withPos(new unaryExpr(op, exp), startToken, tokens[position - 1]);
+    }
+
+    return parsePrimary();
+}
+
+expr* parser::parsePrimary() {
+    //TODO
+}
+
+expr* parser::parseWhile() {
+    token startToken = consume();
+
+    expect(LParen);
+    expr* condition = parseAssignment();
+    expect(RParen);
+
+    std::vector<expr*> body = parseBlock();
+
+    return withPos(new whileExpr(condition, body), startToken, tokens[position - 1]);
+}
+
+expr* parser::parseLogicalOr() {
+    expr* left = parseLogicalAnd();
+    while (current().type == OrOr) {
+        token opToken = consume();
+        expr* right = parseLogicalAnd();
+        left = withPos(new binaryExpr(left, opToken.type, right), left->start, right->end);
+    }
+
+    return left;
+}
+
+expr* parser::parseLogicalAnd() {
+    expr* left = parseComparsion();
+
+    while (current().type == AndAnd) {
+        token opToken = consume();
+        expr* right = parseComparsion();
+        left = withPos(new binaryExpr(left, opToken.type, right), left->start, right->end);
+    }
+
+    return left;
+}
+
+expr* parser::parseFunction(AccessModifier defaultAccess) {
+    token startToken = current();
+    AccessModifier access = defaultAccess;
+    if (isAccessModifier(current().type)) {
+        access = getAccessModifier(consume().type);
+    }
+
+    bool isOverride = false;
+    if (current().type == Override) {
+        isOverride = true;
+        consume();
+    }
+
+    tokenType returnType = consumeType();
+    string name = expect(Identifier).value;
+
+    std::vector<string> typeParams = tryParseTypeParams();
+
+    expect(LParen);
+    std::vector<parameter*> parameters = parseParameters();
+    expect(RParen);
+
+    std::vector<expr*> body = parseBlock();
+
+    return withPos(new functionDeclaration(returnType, name, typeParams, &parameters, body, access), startToken, tokens[position - 1]);
+}
+
+std::vector<parameter*> parser::parseParameters() {
+    std::vector<parameter*> parameters;
+
+    if (current().type != RParen) {
+        do {
+            std::pair<tokenType, string> typeFull = consumeTypeFull();
+
+            string paramName = expect(Identifier).value;
+
+            parameters.push_back(new parameter(typeFull.first, typeFull.second, paramName));
+
+            if (current().type != Comma) break;
+
+            consume();
+        } while (true);
+    }
+
+    return parameters;
+}
+
+expr* parser::parseReturn() {
+    token startToken = consume();
+    if (current().type == Semicolon) return withPos(new returnStatement(nullptr), startToken, tokens[position - 1]);
+
+    expr* value = parseAssignment();
+    return withPos(new returnStatement(value), startToken, tokens[position - 1]);
+}
+
+expr* parser::parseFor() {
+    token startToken = consume();
+    expect(LParen);
+
+    expr* initializer = nullptr;
+    if (current().type != Semicolon) initializer = parseAssignment();
+    else consume();
+
+    expr* condition = nullptr;
+    if (current().type != Semicolon) condition = parseAssignment();
+    else consume();
+
+    expect(Semicolon);
+
+    expr* increment = nullptr;
+    if (current().type != RParen) increment = parseAssignment();
+
+    expect(RParen);
+
+    std::vector<expr*> body = parseBlockOrStatement();
+
+    return withPos(new forStatement(initializer, condition, increment, body), startToken, tokens[position - 1]);
+}
+

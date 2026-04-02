@@ -4,7 +4,9 @@
 
 #include "token.h"
 
+class expr;
 typedef std::string string;
+typedef std::unique_ptr<expr> exprPtr; //memory leak TODO
 
 enum AccessModifier {
     PublicAc,
@@ -334,7 +336,7 @@ public:
     }
 };
 
-class superExpr : public expr { };
+class superExpr : public expr {  };
 
 class thisExpr : public expr { };
 
