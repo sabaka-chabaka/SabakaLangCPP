@@ -1,13 +1,13 @@
-#pragma once
-#include <string>
-#include <vector>
-#include <concepts>
-#include <optional>
+#pragma once]
 
 #include "ast.h"
+#include <string>
+#include <vector>
+#include <type_traits>
+#include <optional>
 #include "token.h"
 
-class expr;
+enum AccessModifier;
 typedef std::string string;
 
 class parser {
@@ -21,29 +21,28 @@ public:
     token consume();
 
 private:
-    template <typename T>
-    requires std::derived_from<T, expr>
-    T* withPos(T* expr, const token& start, const token& end) {
-        expr->Start = start.tokenStart;
-        expr->End = end.tokenEnd;
-        return expr;
+    template <typename T, std::enable_if_t<std::is_base_of_v<expr, T>, int> = 0>
+    T* withPos(T* node, const token& start, const token& end) {
+        node->start = start.tokenStart;
+        node->end = end.tokenEnd;
+        return node;
     }
 
-    template <typename T>
-    requires std::derived_from<T, expr>
-    T* withPos(T* expr, int start, int end) {
-        expr->Start = start;
-        expr->End = end;
-        return expr;
+    template <typename T, std::enable_if_t<std::is_base_of_v<expr, T>, int> = 0>
+    T* withPos(T* node, int start, int end) {
+        node->start = start;
+        node->end = end;
+        return node;
     }
 
-    template <typename T>
-    requires std::derived_from<T, expr>
-    T* withPos(T* expr, const token& token) {
-        expr->Start = token.tokenStart;
-        expr->End = token.tokenEnd;
-        return expr;
+    template <typename T, std::enable_if_t<std::is_base_of_v<expr, T>, int> = 0>
+    T* withPos(T* node, const token& token) {
+        node->start = token.tokenStart;
+        node->end = token.tokenEnd;
+        return node;
     }
+
+    std::string tokenType_toString(tokenType type);
 
     token expect(tokenType type);
 
@@ -61,4 +60,34 @@ private:
 
     bool isFunctionDeclaration();
     bool isVariableDeclaration();
+
+public:
+    std::vector<expr*> parseProgram();
+
+private:
+    expr* parseVariableDeclaration();
+    expr* parseBlockOrStatement();
+    expr* parseStatement();
+    expr* parseIf();
+    expr* parseSwitch();
+    expr* parseBlock();
+    expr* parseAssignment();
+    expr* ParseComparsion();
+    expr* parseAdditive();
+    expr* parseMultiplicative();
+    expr* parseUnary();
+    expr* parsePrimary();
+    expr* parseWhile();
+    expr* ParseLogicalOr();
+    expr* ParseLogicalAnd();
+    expr* parseFunction();
+    expr* parseParameters();
+    expr* parseReturn();
+    expr* parseFor();
+    expr* parseForeach();
+    expr* parseStruct();
+    expr* parseEnum();
+    expr* parseClass();
+    expr* parseInterface();
+    expr* parseImport();
 };

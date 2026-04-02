@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-std::string tokenType_toString(const tokenType type) {
+std::string parser::tokenType_toString(const tokenType type) {
     switch (type) {
         case Number: return "Number";
 
@@ -107,9 +107,11 @@ token parser::consume() {
 }
 
 token parser::expect(tokenType type) {
-    if (current().type == type) {
+    if (current().type != type) {
         throw std::runtime_error("Expected " + tokenType_toString(type) + " but got " + tokenType_toString(current().type));
     }
+
+    return consume();
 }
 
 std::pair<tokenType, string> parser::consumeTypeFull() {
@@ -194,7 +196,7 @@ std::vector<string> parser::tryParseTypeArgs() {
 }
 
 token parser::peek(int offset) {
-    if (position + 1 >= tokens.size())
+    if (position + offset >= tokens.size())
         return tokens.back();
 
     return tokens[position + offset];
@@ -306,4 +308,24 @@ bool parser::isVariableDeclaration() {
     }
 
     return false;
+}
+
+std::vector<expr*> parser::parseProgram() {
+    std::vector<expr*> expressions;
+
+    while (current().type != EndOfFile) {
+        expr* exp = nullptr;
+
+        if (isFunctionDeclaration()) {
+            exp = parseFunction();
+        }
+        else {
+            exp = parseStatement();
+        }
+
+        if (exp)
+            expressions.push_back(exp);
+    }
+
+    return expressions;
 }

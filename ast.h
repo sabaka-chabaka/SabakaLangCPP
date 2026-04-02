@@ -16,6 +16,8 @@ class expr {
 public:
     int start;
     int end;
+
+    virtual ~expr() = default;
 };
 
 class arrayAccessExpr : public expr {
@@ -89,6 +91,7 @@ public:
 };
 
 class callExpr : public expr {
+public:
     expr* target;
     string name;
     std::vector<expr*>* args;
