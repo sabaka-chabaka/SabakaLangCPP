@@ -65,12 +65,12 @@ public:
     std::vector<expr*> parseProgram();
 
 private:
-    expr* parseVariableDeclaration();
-    expr* parseBlockOrStatement();
+    expr* parseVariableDeclaration(AccessModifier defaultAccess = PublicAc);
+    std::vector<expr*> parseBlockOrStatement();
     expr* parseStatement();
     expr* parseIf();
     expr* parseSwitch();
-    expr* parseBlock();
+    std::vector<expr*> parseBlock();
     expr* parseAssignment();
     expr* ParseComparsion();
     expr* parseAdditive();

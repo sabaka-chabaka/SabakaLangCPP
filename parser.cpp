@@ -329,3 +329,105 @@ std::vector<expr*> parser::parseProgram() {
 
     return expressions;
 }
+
+expr *parser::parseVariableDeclaration(AccessModifier defaultAccess) {
+    token startToken = current();
+    AccessModifier access = defaultAccess;
+    if (isAccessModifier(current().type)) {
+        access = getAccessModifier(current().type);
+    }
+
+    std::pair<tokenType, string> typeFull = consumeTypeFull();
+
+    token nameToken = expect(Identifier);
+    expr* initializer = nullptr;
+
+    if (current().type == Equal) {
+        consume();
+        initializer = parseAssignment();
+    }
+
+    return withPos(new variableDeclaration(typeFull.first, typeFull.second, nameToken.value, initializer, access), startToken, tokens[position - 1]);
+}
+
+std::vector<expr*> parser::parseBlockOrStatement() {
+    if (current().type == LBrace)
+        return parseBlock();
+
+    expr* statement = parseStatement();
+    return { statement };
+}
+
+expr* parser::parseStatement() {
+    expr* stmt;
+    if (current().type == If) stmt = parseIf();
+    else if (current().type == Switch) stmt = parseSwitch();
+    else if (isVariableDeclaration()) {
+        stmt = parseVariableDeclaration();
+        if (current().type == Semicolon) consume();
+        return stmt;
+    }
+    else if (current().type == While) stmt = parseWhile();
+    else if (current().type == Return) stmt = parseReturn();
+    else if (current().type == Foreach) stmt = parseForeach();
+    else if (current().type == For) stmt = parseFor();
+    else if (current().type == StructKeyword) stmt = parseStruct();
+    else if (current().type == Import) stmt = parseImport();
+    else if (current().type == Class) stmt = parseClass();
+    else if (current().type == Interface) stmt = parseInterface();
+    else if (current().type == Enum) stmt = parseEnum();
+    else stmt = parseAssignment();
+
+    if (current().type == Semicolon) consume();
+    return stmt;
+}
+
+expr* parser::parseIf() {
+    token startToken = consume();
+    expect(LParen);
+    expr* condition = parseAssignment();
+    expect(RParen);
+    std::vector<expr*> thenBlock = parseBlockOrStatement();
+
+    std::vector<expr*> elseBlock;
+    if (current().type == Else) {
+        consume();
+        elseBlock = parseBlockOrStatement();
+    }
+
+    return withPos(new ifStatement(condition, thenBlock, elseBlock), startToken, tokens[position - 1]);
+}
+
+expr* parser::parseSwitch() {
+    token startToken = consume();
+    expect(LParen);
+    expr* expression = parseAssignment();
+    expect(RParen);
+    std::vector<switchCase*> cases;
+    bool hasDefault = false;
+
+    while (current().type != RBrace && current().type != EndOfFile) {
+        if (current().type == Case) {
+            consume();
+            expr* value = parseAssignment();
+            expect(Colon);
+            std::vector<expr*> body = parseBlockOrStatement();
+            cases.push_back(new switchCase(value, body));
+        }
+        else if (current().type == Default) {
+            if (hasDefault) throw std::runtime_error("Multiple default cases in switch");
+
+            consume();
+            hasDefault = true;
+            expect(Colon);
+            std::vector<expr*> body = parseBlockOrStatement();
+            cases.push_back(new switchCase(nullptr, body));
+        }
+        else {
+            throw std::runtime_error("Expected 'case' or 'default' got " + tokenType_toString(current().type) + " instead. In switch " + startToken.value);
+        }
+    }
+
+    expect(RBrace);
+    return withPos(new switchStatement(expression, cases), startToken, tokens[position - 1]);
+}

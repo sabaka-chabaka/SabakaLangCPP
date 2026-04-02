@@ -33,14 +33,10 @@ public:
 
 class arrayExpr : public expr {
 public:
-    std::vector<expr*>* elements;
+    std::vector<expr*> elements;
 
-    arrayExpr(std::vector<expr*>* elements) : expr() {
+    arrayExpr(std::vector<expr*> elements) : expr() {
         this->elements = elements;
-    }
-
-    ~arrayExpr() {
-        delete elements;
     }
 };
 
@@ -94,9 +90,9 @@ class callExpr : public expr {
 public:
     expr* target;
     string name;
-    std::vector<expr*>* args;
+    std::vector<expr*> args;
 
-    callExpr(expr* target, string name, std::vector<expr*>* args) : expr() {
+    callExpr(expr* target, string name, std::vector<expr*> args) : expr() {
         this->target = target;
         this->name = std::move(name);
         this->args = args;
@@ -109,15 +105,15 @@ class functionDeclaration;
 class classDeclaration : public expr {
 public:
     string name;
-    std::vector<string>* typeParams;
+    std::vector<string> typeParams;
     string baseClassName;
-    std::vector<string>* interfaces;
+    std::vector<string> interfaces;
     std::vector<variableDeclaration*>* fields;
     std::vector<functionDeclaration*>* methods;
 
-    bool isGeneric() const { return typeParams->size() > 0; }
+    bool isGeneric() const { return typeParams.size() > 0; }
 
-    classDeclaration(string name, std::vector<string>* typeParams, string baseClassName, std::vector<string>* interfaces, std::vector<variableDeclaration*>* fields, std::vector<functionDeclaration*>* methods) : expr() {
+    classDeclaration(string name, std::vector<string> typeParams, string baseClassName, std::vector<string> interfaces, std::vector<variableDeclaration*>* fields, std::vector<functionDeclaration*>* methods) : expr() {
         this->name = std::move(name);
         this->typeParams = typeParams;
         this->baseClassName = std::move(baseClassName);
@@ -130,9 +126,9 @@ public:
 class enumDeclaration : public expr {
 public:
     string name;
-    std::vector<string>* members;
+    std::vector<string> members;
 
-    enumDeclaration(string name, std::vector<string>* members) : expr() {
+    enumDeclaration(string name, std::vector<string> members) : expr() {
         this->name = std::move(name);
         this->members = members;
     }
@@ -152,9 +148,9 @@ public:
     expr* initializer;
     expr* condition;
     expr* increment;
-    std::vector<expr*>* body;
+    std::vector<expr*> body;
 
-    forStatement(expr* initializer, expr* condition, expr* increment, std::vector<expr*>* body) : expr() {
+    forStatement(expr* initializer, expr* condition, expr* increment, std::vector<expr*> body) : expr() {
         this->initializer = initializer;
         this->condition = condition;
         this->increment = increment;
@@ -166,9 +162,9 @@ class foreachStatement : public expr {
 public:
     expr* varName;
     expr* collection;
-    std::vector<expr*>* body;
+    std::vector<expr*> body;
 
-    foreachStatement(expr* varName, expr* collection, std::vector<expr*>* body) : expr() {
+    foreachStatement(expr* varName, expr* collection, std::vector<expr*> body) : expr() {
         this->varName = varName;
         this->collection = collection;
         this->body = body;
@@ -181,14 +177,14 @@ class functionDeclaration : public expr {
 public:
     tokenType returnType;
     string name;
-    std::vector<string>* typeParams;
+    std::vector<string> typeParams;
     std::vector<parameter*>* params;
-    std::vector<expr*>* body;
+    std::vector<expr*> body;
     AccessModifier accessModifier;
 
-    bool isGeneric() const { return typeParams->size() > 0; }
+    bool isGeneric() const { return typeParams.size() > 0; }
 
-    functionDeclaration(tokenType returnType, string name, std::vector<string>* typeParams, std::vector<parameter*>* params, std::vector<expr*>* body, AccessModifier accessModifier) : expr() {
+    functionDeclaration(tokenType returnType, string name, std::vector<string> typeParams, std::vector<parameter*>* params, std::vector<expr*> body, AccessModifier accessModifier) : expr() {
         this->returnType = returnType;
         this->name = std::move(name);
         this->typeParams = typeParams;
@@ -201,10 +197,10 @@ public:
 class ifStatement : public expr {
 public:
     expr* condition;
-    std::vector<expr*>* thenBlock;
-    std::vector<expr*>* elseBlock;
+    std::vector<expr*> thenBlock;
+    std::vector<expr*> elseBlock;
 
-    ifStatement(expr* condition, std::vector<expr*>* thenBlock, std::vector<expr*>* elseBlock) : expr() {
+    ifStatement(expr* condition, std::vector<expr*> thenBlock, std::vector<expr*> elseBlock) : expr() {
         this->condition = condition;
         this->thenBlock = thenBlock;
         this->elseBlock = elseBlock;
@@ -232,13 +228,13 @@ public:
 class interfaceDeclaration : public expr {
 public:
     string name;
-    std::vector<string>* typeParams;
-    std::vector<string>* parents;
+    std::vector<string> typeParams;
+    std::vector<string> parents;
     std::vector<functionDeclaration*>* methods;
 
-    bool isGeneric() const { return typeParams->size() > 0; }
+    bool isGeneric() const { return typeParams.size() > 0; }
 
-    interfaceDeclaration(string name, std::vector<string>* typeParams, std::vector<string>* parents, std::vector<functionDeclaration*>* methods) : expr() {
+    interfaceDeclaration(string name, std::vector<string> typeParams, std::vector<string> parents, std::vector<functionDeclaration*>* methods) : expr() {
         this->name = std::move(name);
         this->typeParams = typeParams;
         this->parents = parents;
@@ -274,7 +270,7 @@ class newExpr : public expr {
 public:
     string className;
     std::vector<string> typeArgs;
-    std::vector<expr*>* arguments;
+    std::vector<expr*> arguments;
 
     std::string getMangledName() const {
         if (typeArgs.empty()) {
@@ -288,7 +284,7 @@ public:
         return result;
     }
 
-    newExpr(string className, std::vector<string> typeArgs, std::vector<expr*>* arguments) : expr() {
+    newExpr(string className, std::vector<string> typeArgs, std::vector<expr*> arguments) : expr() {
         this->className = std::move(className);
         this->typeArgs = std::move(typeArgs);
         this->arguments = arguments;
@@ -330,9 +326,9 @@ public:
 class structDeclaration : public expr {
 public:
     string name;
-    std::vector<string>* fields;
+    std::vector<string> fields;
 
-    structDeclaration(string name, std::vector<string>* fields) : expr() {
+    structDeclaration(string name, std::vector<string> fields) : expr() {
         this->name = std::move(name);
         this->fields = fields;
     }
@@ -345,9 +341,9 @@ class thisExpr : public expr { };
 class switchCase {
 public:
     expr* value;
-    std::vector<expr*>* body;
+    std::vector<expr*> body;
 
-    switchCase(expr* value, std::vector<expr*>* body) {
+    switchCase(expr* value, std::vector<expr*> body) {
         this->value = value;
         this->body = body;
     }
@@ -356,11 +352,11 @@ public:
 class switchStatement : public expr {
 public:
     expr* expression;
-    std::vector<switchCase*>* cases;
+    std::vector<switchCase*> cases;
 
-    switchStatement(expr* expression, std::vector<switchCase*>* cases) {
+    switchStatement(expr* expression, std::vector<switchCase*> cases) {
         this->expression = expression;
-        this->cases = cases;
+        this->cases = std::move(cases);
     }
 };
 
@@ -404,9 +400,9 @@ public:
 class whileExpr : public expr {
 public:
     expr* condition;
-    std::vector<expr*>* body;
+    std::vector<expr*> body;
 
-    whileExpr(expr* condition, std::vector<expr*>* body) : expr() {
+    whileExpr(expr* condition, std::vector<expr*> body) : expr() {
         this->condition = condition;
         this->body = body;
     }
