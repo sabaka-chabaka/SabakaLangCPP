@@ -767,4 +767,13 @@ expr* parser::parseEnum() {
     return withPos(new enumDeclaration(name, members), startToken, tokens[position - 1]);
 }
 
-//TODO ParseClass, Import, Interface
+
+expr* parser::parseImport() {
+    token startToken = consume();
+    const string path = expect(StringLiteral).value;
+
+    if (current().type == Semicolon) consume();
+
+    return withPos(new importStatement(filePath), startToken, tokens[position - 1]);
+}
+//TODO ParseClass, Interface
