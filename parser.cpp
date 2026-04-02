@@ -707,3 +707,64 @@ expr* parser::parseFor() {
     return withPos(new forStatement(initializer, condition, increment, body), startToken, tokens[position - 1]);
 }
 
+expr* parser::parseForeach() {
+    token startToken = consume();
+
+    expect(LParen);
+
+    consumeType();
+
+    string variableName = expect(Identifier).value;
+
+    expect(In);
+
+    expr* collection = parseAssignment();
+
+    expect(RParen);
+
+    std::vector<expr*> body = parseBlock();
+
+    return withPos(new foreachStatement(variableName, collection, body), startToken, tokens[position - 1]);
+}
+
+expr* parser::parseStruct() {
+    token startToken = consume();
+    string name = expect(Identifier).value;
+
+    expect(LBrace);
+
+    std::vector<string> fields;
+
+    while (current().type != RBrace) {
+        consumeType();
+        string fieldName = expect(Identifier).value;
+        expect(Semicolon);
+
+        fields.push_back(fieldName);
+    }
+
+    expect(RBrace);
+
+    return withPos(new structDeclaration(name, fields), startToken, tokens[position - 1]);
+}
+
+expr* parser::parseEnum() {
+    token startToken = consume();
+    string name = expect(Identifier).value;
+
+    expect(LBrace);
+
+    std::vector<string> members;
+
+    while (current().type != RBrace) {
+        string valueName = expect(Identifier).value;
+        members.push_back(valueName);
+        if (current().type != Comma) consume();
+    }
+
+    expect(RBrace);
+
+    return withPos(new enumDeclaration(name, members), startToken, tokens[position - 1]);
+}
+
+//TODO ParseClass, Import, Interface

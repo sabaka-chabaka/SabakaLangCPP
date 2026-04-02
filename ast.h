@@ -162,14 +162,14 @@ public:
 
 class foreachStatement : public expr {
 public:
-    expr* varName;
+    string varName;
     expr* collection;
     std::vector<expr*> body;
 
-    foreachStatement(expr* varName, expr* collection, std::vector<expr*> body) : expr() {
-        this->varName = varName;
+    foreachStatement(string varName, expr* collection, std::vector<expr*> body) : expr() {
+        this->varName = std::move(varName);
         this->collection = collection;
-        this->body = body;
+        this->body = std::move(body);
     }
 };
 
