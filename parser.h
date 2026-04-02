@@ -2,7 +2,9 @@
 #include <string>
 #include <vector>
 #include <concepts>
+#include <optional>
 
+#include "ast.h"
 #include "token.h"
 
 class expr;
@@ -21,7 +23,7 @@ public:
 private:
     template <typename T>
     requires std::derived_from<T, expr>
-    T* WithPos(T* expr, const token& start, const token& end) {
+    T* withPos(T* expr, const token& start, const token& end) {
         expr->Start = start.tokenStart;
         expr->End = end.tokenEnd;
         return expr;
@@ -29,7 +31,7 @@ private:
 
     template <typename T>
     requires std::derived_from<T, expr>
-    T* WithPos(T* expr, int start, int end) {
+    T* withPos(T* expr, int start, int end) {
         expr->Start = start;
         expr->End = end;
         return expr;
@@ -37,13 +39,26 @@ private:
 
     template <typename T>
     requires std::derived_from<T, expr>
-    T* WithPos(T* expr, const token& token) {
+    T* withPos(T* expr, const token& token) {
         expr->Start = token.tokenStart;
         expr->End = token.tokenEnd;
         return expr;
     }
 
-    token Expect(tokenType type);
+    token expect(tokenType type);
 
+    std::pair<tokenType, string> consumeTypeFull();
+    tokenType consumeType();
+    std::vector<string> tryParseTypeArgs();
+    std::vector<string> tryParseTypeParams();
 
+    static bool isTypeKeyword(tokenType type);
+    static bool isAccessModifier(tokenType type);
+
+    static AccessModifier getAccessModifier(tokenType type);
+
+    token peek(int offset = 1);
+
+    bool isFunctionDeclaration();
+    bool isVariableDeclaration();
 };

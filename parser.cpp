@@ -106,8 +106,204 @@ token parser::consume() {
     return cur;
 }
 
-token parser::Expect(tokenType type) {
+token parser::expect(tokenType type) {
     if (current().type == type) {
         throw std::runtime_error("Expected " + tokenType_toString(type) + " but got " + tokenType_toString(current().type));
     }
+}
+
+std::pair<tokenType, string> parser::consumeTypeFull() {
+    token token1 = consume();
+    tokenType type = token1.type;
+    std::string customType;
+
+    if (type == Identifier) {
+        customType = token1.value;
+    }
+
+    if (type == Identifier && current().type == Less) {
+        std::vector<string> typeArgs = tryParseTypeArgs();
+        if (!typeArgs.empty()) {
+            string joinedArgs;
+            for (const auto& arg : typeArgs) {
+                joinedArgs += "$" + arg;
+            }
+            customType = customType + joinedArgs;
+        }
+    }
+
+    while (current().type == LBracket) {
+        consume();
+        expect(RBracket);
+    }
+
+    return { type, customType };
+}
+
+tokenType parser::consumeType() {
+    return consumeTypeFull().first;
+}
+
+bool parser::isTypeKeyword(tokenType type) {
+    return type == IntKeyword || type == FloatKeyword || type == BoolKeyword || type == StringKeyword || type == VoidKeyword;
+}
+
+bool parser::isAccessModifier(tokenType type) {
+    return type == Public || type == Private || type == Protected;
+}
+
+AccessModifier parser::getAccessModifier(tokenType type) {
+    switch (type) {
+        case Public: return PublicAc;
+        case Private: return PrivateAc;
+        case Protected: return ProtectedAc;
+        default: return PublicAc;
+    }
+}
+
+std::vector<string> parser::tryParseTypeArgs() {
+    std::vector<string> result;
+    if (current().type != Less) return result;
+
+    int saved = position;
+    consume();
+
+    while (true) {
+        if (!isTypeKeyword(current().type) && current().type != Identifier) {
+            position = saved;
+            return {};
+        }
+        string typeName = current().value;
+        consume();
+
+        while (current().type == LBracket && peek().type == RBracket) {
+            typeName += "[]";
+            consume(); consume();
+        }
+        result.push_back(typeName);
+        if (current().type == Comma) {consume(); continue;}
+        break;
+    }
+
+    if (current().type != Greater) {
+        position = saved;
+        return {};
+    }
+    consume();
+    return result;
+}
+
+token parser::peek(int offset) {
+    if (position + 1 >= tokens.size())
+        return tokens.back();
+
+    return tokens[position + offset];
+}
+
+std::vector<string> parser::tryParseTypeParams() {
+    std::vector<string> result;
+    if (current().type != Less) return result;
+
+    int saved = position;
+    consume();
+
+    while (true) {
+        if (current().type != Identifier) {
+            position = saved;
+            return {};
+        }
+
+        result.push_back(consume().value);
+        if (current().type == Comma) {consume(); continue;}
+        break;
+    }
+
+    if (current().type != Greater) {
+        position = saved;
+        return {};
+    }
+    consume();
+    return result;
+}
+
+bool parser::isFunctionDeclaration() {
+    int offset = 0;
+    if (isAccessModifier(peek(offset).type)) offset++;
+
+    if (peek(offset).type == Override) offset++;
+
+    if (!isTypeKeyword(peek(offset).type) && peek(offset).type != Identifier) return false;
+
+    offset++;
+
+    if (peek(offset).type == Less) {
+        offset++;
+        int depth = 1;
+        while (depth > 0 && position + offset < tokens.size()) {
+            tokenType t = peek(offset).type;
+            if (t == Less) depth++;
+            else if (t == Greater) depth--;
+            else if (t == Semicolon || t == EndOfFile) break;
+            offset++;
+        }
+        if (depth != 0 ) return false;
+    }
+
+    while (peek(offset).type == LBracket) {
+        if (peek(offset + 1).type == RBracket) return false;
+        offset += 2;
+    }
+
+    if (peek(offset).type == Less) {
+        offset++;
+        int depth = 1;
+        while (depth > 0 && position + offset < tokens.size()) {
+            tokenType t = peek(offset).type;
+            if (t == Less) depth++;
+            else if (t == Greater) depth--;
+            else if (t == Semicolon || t == EndOfFile) break;
+            offset++;
+        }
+        if (depth != 0 ) return false;
+    }
+
+    return peek(offset).type == LParen;
+}
+
+bool parser::isVariableDeclaration() {
+    int offset = 0;
+    if (isAccessModifier(peek(offset).type)) offset++;
+
+    if (isTypeKeyword(peek(offset).type) && peek(offset).type != VoidKeyword) return true;
+
+    if (peek(offset).type == Identifier) {
+        offset++;
+
+        if (peek(offset).type == Less) {
+            int saved = offset;
+            offset++;
+            int depth = 1;
+            while (depth > 0 && position + offset < tokens.size()) {
+                tokenType t = peek(offset).type;
+                if (t == Less) depth++;
+                else if (t == Greater) depth--;
+                else if (t == Semicolon || t == EndOfFile) break;
+                offset++;
+            }
+            if (depth != 0) {
+                return false;
+            }
+
+            return peek(offset).type == Identifier;
+        }
+
+        while (peek(offset).type == LBracket) {
+            if (peek(offset + 1).type != RBracket) return false;
+            offset += 2;
+        }
+
+        return peek(offset).type == Identifier;
+    }
+
+    return false;
 }
