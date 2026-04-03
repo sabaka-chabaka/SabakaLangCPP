@@ -590,7 +590,60 @@ expr* parser::parseUnary() {
 }
 
 expr* parser::parsePrimary() {
-    //TODO
+    expr* exp;
+    token startToken = current();
+
+    if (current().type == New) {
+        consume();
+        string name = expect(Identifier).value;
+        std::vector<string> typeArgs = tryParseTypeArgs();
+        expect(LParen);
+
+        std::vector<expr*> args;
+        if (current().type != RParen) {
+            do {
+                args.push_back(parseAssignment());
+                if (current().type != Comma) break;
+                consume();
+            } while (true);
+        }
+        expect(RParen);
+
+        exp = withPos(new newExpr(name, typeArgs, args), startToken, tokens[position - 1]);
+    }
+    else if (current().type == IntLiteral) {
+        exp = withPos(new intExpr(std::stoi(current().value)), current());
+        consume()''
+    }
+    else if (current().type == FloatLiteral) {
+        exp = withPos(new floatExpr(std::stod(current().value)), current());
+        consume();
+    }
+    else if (current().type == StringLiteral) {
+        exp = withPos(new stringExpr(current().value), current());
+    }
+    else if (current().type == True) {
+        exp = withPos(new boolExpr(true), current());
+        consume();
+    }
+    else if (current().type == False) {
+        exp = withPos(new boolExpr(false), current());
+        consume();
+    }
+    else if (current().type == Identifier) {
+        exp = withPos(new variableExpr(current().value), current());
+        consume();
+    }
+    else if (current().type == This) {
+        exp = withPos(new thisExpr(), current());
+        consume();
+    }
+    else if (current().type == Super) {
+        exp = withPos(new superExpr(), current());
+        //TODO
+    }
+
+    return exp;
 }
 
 expr* parser::parseWhile() {
@@ -776,4 +829,79 @@ expr* parser::parseImport() {
 
     return withPos(new importStatement(filePath), startToken, tokens[position - 1]);
 }
-//TODO ParseClass, Interface
+
+expr* parser::parseInterface() {
+    token startToken = consume();
+    string name = expect(Identifier).value;
+    std::vector<string> typeParams = tryParseTypeParams();
+
+    std::vector<string> parents;
+    if (current().type == Colon) {
+        consume();
+        do {
+            parents.push_back(expect(Identifier).value);
+            if (current().type != Comma) break;
+            consume();
+        } while (true);
+    }
+
+    expect(LBrace);
+
+    std::vector<functionDeclaration*> methods;
+
+    while (current().type != RBrace) {
+        token methodStartToken = current();
+        tokenType returnType = consumeType();
+        string methodName = expect(Identifier).value;
+
+        expect(LParen);
+        std::vector<parameter*> parameters = parseParameters();
+        expect(RParen);
+        expect(Semicolon);
+
+        methods.push_back(withPos(new functionDeclaration(returnType, methodName, typeParams, &parameters, {}, AccessModifier::Public), methodStartToken, tokens[position - 1]));
+    }
+
+    expect(RBrace);
+
+    return withPos(new interfaceDeclaration(name, typeParams, parents, methods), startToken, tokens[position - 1]);
+}
+
+expr* parser::parseClass() {
+    token startToken = consume();
+    string name = expect(Identifier).value;
+    std::vector<string> typeParams = tryParseTypeParams();
+
+    string baseClassName;
+    std::vector<string> interfaces;
+
+    if (current().type == Colon) {
+        consume();
+        string first = expect(Identifier).value;
+        baseClassName = first;
+        while (current().type == Comma) {
+            consume();
+            interfaces.push_back(expect(Identifier).value);
+        }
+    }
+
+    expect(LBrace);
+
+    std::vector<variableDeclaration*> fields;
+    std::vector<functionDeclaration*> methods;
+
+    while (current().type != RBrace) {
+        if (isFunctionDeclaration()) {
+            methods.push_back(dynamic_cast<functionDeclaration*>(parseFunction()));
+        }
+        else if (isVariableDeclaration()) {
+            variableDeclaration* field = dynamic_cast<variableDeclaration*>(parseVariableDeclaration());
+            expect(Semicolon);
+            fields.push_back(field);
+        }
+    }
+
+    expect(RBrace);
+
+    return withPos(new classDeclaration(name, typeParams, baseClassName, interfaces, fields, methods), startToken, tokens[position - 1]);
+}
